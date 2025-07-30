@@ -24,14 +24,14 @@ if ! command -v docker-compose &> /dev/null; then
 fi
 
 # Ask for domain name
-read -p "Enter your domain name [datalakeops.com]: " domain_name
-domain_name=${domain_name:-datalakeops.com}
+read -p "Enter your domain name [orosdata.com]: " domain_name
+domain_name=${domain_name:-orosdata.com}
 
 # Ask for GTM container configuration
 read -p "Enter your GTM container configuration ID: " container_config
 
 # Update domain name in NGINX configuration
-sed -i "s/datalakeops.com/$domain_name/g" nginx/conf.d/default.conf
+sed -i "s/orosdata.com/$domain_name/g" nginx/conf.d/default.conf
 
 # Update GTM container configuration in docker-compose.yml
 sed -i "s/your_container_config/$container_config/g" docker-compose.yml
@@ -72,9 +72,9 @@ else
 fi
 
 # Change Grafana password
-read -p "Enter a secure password for Grafana admin [!DataLake123*]: " grafana_password
-grafana_password=${grafana_password:-!DataLake123*}
-sed -i "s/!DataLake123*/$grafana_password/g" docker-compose.yml
+read -p "Enter a secure password for Grafana admin [!OrosData1725]: " grafana_password
+grafana_password=${grafana_password:-!OrosData1725}
+sed -i "s/!OrosData1725/$grafana_password/g" docker-compose.yml
 
 echo "Setup completed! You can now start the stack with:"
 echo "docker-compose up -d" 

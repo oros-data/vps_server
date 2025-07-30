@@ -10,18 +10,18 @@ echo ""
 
 echo "2. Testing direct server access (bypassing Cloudflare):"
 echo "   Root path:"
-curl -I -k https://15.204.58.123/ -H "Host: datalakeops.com" 2>/dev/null | head -5
+curl -I -k https://51.81.220.69/ -H "Host: orosdata.com" 2>/dev/null | head -5
 echo ""
 echo "   Grafana path:"
-curl -I -k https://15.204.58.123/grafana/ -H "Host: datalakeops.com" 2>/dev/null | head -5
+curl -I -k https://51.81.220.69/grafana/ -H "Host: orosdata.com" 2>/dev/null | head -5
 echo ""
 
 echo "3. Testing through Cloudflare:"
 echo "   Root path:"
-curl -I https://datalakeops.com 2>/dev/null | head -5
+curl -I https://orosdata.com 2>/dev/null | head -5
 echo ""
 echo "   Grafana path:"
-curl -I https://datalakeops.com/grafana/ 2>/dev/null | head -5
+curl -I https://orosdata.com/grafana/ 2>/dev/null | head -5
 echo ""
 
 echo "4. Recent NGINX logs (last 5 lines):"

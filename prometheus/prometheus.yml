@@ -10,3 +10,39 @@ scrape_configs:
   - job_name: 'nginx'
     static_configs:
       - targets: ['nginx-exporter:9113']
+      
+  - job_name: 'n8n'
+    static_configs:
+      - targets: ['n8n:5678']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    
+  - job_name: 'gtm-server'
+    static_configs:
+      - targets: ['gtm-server:8080']
+    metrics_path: '/healthz'
+    scrape_interval: 15s
+    
+  - job_name: 'gtm-server-preview'
+    static_configs:
+      - targets: ['gtm-server-preview:8080']
+    metrics_path: '/healthz'
+    scrape_interval: 15s
+    
+  - job_name: 'gtm-server-zoppy'
+    static_configs:
+      - targets: ['gtm-server-zoppy:8080']
+    metrics_path: '/healthz'
+    scrape_interval: 15s
+    
+  - job_name: 'gtm-server-zoppy-preview'
+    static_configs:
+      - targets: ['gtm-server-zoppy-preview:8080']
+    metrics_path: '/healthz'
+    scrape_interval: 15s
+    
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 30s

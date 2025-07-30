@@ -4,13 +4,32 @@
 echo "===== Testing GTM Server, NGINX and Grafana Setup ====="
 
 # Check if domain resolves
-echo -e "\n[1] Checking DNS resolution for datalakeops.com..."
-if ping -c 1 datalakeops.com &> /dev/null; then
-    echo "✅ datalakeops.com resolves correctly"
-else
-    echo "❌ datalakeops.com does not resolve correctly"
-    echo "   Verify your DNS A record points to your server IP"
-fi
+echo -e "\n[1] Checking DNS resolution..."
+for domain in orosdata.com server.orosdata.com gtm.orosdata.com; do
+    if ping -c 1 $domain &> /dev/null; then
+        echo "✅ $domain resolves correctly"
+    else
+        echo "❌ $domain does not resolve correctly"
+    fi
+done
+
+# Test URLs with new structure
+echo -e "\n[2] Testing new domain structure..."
+
+# Test main landing page
+echo "Testing main landing page..."
+MAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://orosdata.com)
+echo "   https://orosdata.com → Status: $MAIN_STATUS"
+
+# Test server tools
+echo "Testing server tools..."
+SERVER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://server.orosdata.com/grafana/)
+echo "   https://server.orosdata.com/grafana/ → Status: $SERVER_STATUS"
+
+# Test GTM endpoint  
+echo "Testing GTM server..."
+GTM_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://gtm.orosdata.com)
+echo "   https://gtm.orosdata.com → Status: $GTM_STATUS"
 
 # Restart the services
 echo -e "\n[2] Restarting services..."
@@ -36,7 +55,7 @@ fi
 
 # Test NGINX connectivity
 echo -e "\n[5] Testing NGINX HTTP to HTTPS redirect..."
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://datalakeops.com)
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://orosdata.com)
 if [ "$HTTP_STATUS" -eq 301 ] || [ "$HTTP_STATUS" -eq 302 ]; then
     echo "✅ HTTP to HTTPS redirect works (status $HTTP_STATUS)"
 else
@@ -45,7 +64,7 @@ fi
 
 # Test NGINX HTTPS connectivity
 echo -e "\n[6] Testing NGINX HTTPS connectivity..."
-HTTPS_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://datalakeops.com)
+HTTPS_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://orosdata.com)
 if [ "$HTTPS_STATUS" -ge 200 ] && [ "$HTTPS_STATUS" -lt 400 ]; then
     echo "✅ HTTPS connection works (status $HTTPS_STATUS)"
 else
@@ -54,7 +73,7 @@ fi
 
 # Test GTM Server
 echo -e "\n[7] Testing GTM Server..."
-GTM_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://datalakeops.com)
+GTM_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://orosdata.com)
 if [ "$GTM_STATUS" -ge 200 ] && [ "$GTM_STATUS" -lt 400 ]; then
     echo "✅ GTM Server is accessible (status $GTM_STATUS)"
 else
@@ -65,7 +84,7 @@ fi
 
 # Test Grafana
 echo -e "\n[8] Testing Grafana..."
-GRAFANA_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://datalakeops.com/grafana)
+GRAFANA_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://orosdata.com/grafana)
 if [ "$GRAFANA_STATUS" -ge 200 ] && [ "$GRAFANA_STATUS" -lt 400 ]; then
     echo "✅ Grafana is accessible (status $GRAFANA_STATUS)"
 else
@@ -78,7 +97,7 @@ fi
 
 # Test Prometheus
 echo -e "\n[9] Testing Prometheus..."
-PROMETHEUS_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://datalakeops.com/prometheus/)
+PROMETHEUS_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://orosdata.com/prometheus/)
 if [ "$PROMETHEUS_STATUS" -eq 401 ] || [ "$PROMETHEUS_STATUS" -ge 200 ] && [ "$PROMETHEUS_STATUS" -lt 400 ]; then
     echo "✅ Prometheus is accessible (status $PROMETHEUS_STATUS)"
 else

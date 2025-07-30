@@ -1,98 +1,229 @@
-version: '3'
+  version: '3'
 
-services:
-  nginx:
-    image: nginx:stable
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - ./nginx/cache:/var/cache/nginx
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/auth:/etc/nginx/auth
-    restart: always
-    # Enable nginx metrics
-    command: ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
-    depends_on:
-      - gtm-server
-      - grafana
-      - prometheus
-    
-  # NGINX metrics exporter
-  nginx-exporter:
-    image: nginx/nginx-prometheus-exporter:latest
-    container_name: nginx-exporter
-    restart: unless-stopped
-    command:
-      - '-nginx.scrape-uri=http://nginx/metrics'
-    depends_on:
-      - nginx
-    expose:
-      - 9113
-    
-  gtm-server:
-    image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
-    environment:
-      - CONTAINER_CONFIG=aWQ9R1RNLTVQMzY3RzJNJmVudj0xJmF1dGg9YjhsRFllSkg4QmR1Z25LWGJuT0lUdw==
-    restart: always
-    expose:
-      - 8080
-    
-  # Node exporter to collect system metrics
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    restart: unless-stopped
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    expose:
-      - 9100
+  services:
+    nginx:
+      image: nginx:stable
+      ports:
+        - "80:80"
+        - "443:443"
+      volumes:
+        - ./nginx/conf.d:/etc/nginx/conf.d
+        - ./nginx/ssl:/etc/nginx/ssl
+        - ./nginx/cache:/var/cache/nginx
+        - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+        - ./nginx/auth:/etc/nginx/auth
+      restart: always
+      # Enable nginx metrics
+      command: ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
+      depends_on:
+        - gtm-server
+        - grafana
+        - prometheus
+        - n8n
       
-  # Prometheus for metrics collection
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    restart: unless-stopped
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    expose:
-      - 9090
+    # NGINX metrics exporter
+    nginx-exporter:
+      image: nginx/nginx-prometheus-exporter:latest
+      container_name: nginx-exporter
+      restart: unless-stopped
+      command:
+        - '-nginx.scrape-uri=http://nginx/metrics'
+      depends_on:
+        - nginx
+      expose:
+        - 9113
       
-  # Grafana for visualization
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    restart: unless-stopped
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=!Trixman25*
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=https://datalakeops.com/grafana
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_SERVER_DOMAIN=datalakeops.com
-      - GF_SERVER_ENFORCE_DOMAIN=false
-    expose:
-      - 3000
+    gtm-server:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:latest
+      container_name: gtm-server
+      restart: always
+      environment:
+        - CONTAINER_CONFIG=aWQ9R1RNLVcyQzU2TU40JmVudj0xJmF1dGg9N01CenV1M0l4RmM5OEpQVDV5LWtqdw==
+        - RUN_AS_PREVIEW_SERVER=false
+        - PREVIEW_SERVER_URL=https://gtm-preview.yannrodrigues.com
+        - LOG_LEVEL=1
+      expose:
+        - 8080
+      ports:
+        - "8080:8080"  # Temporary for preview mode setup
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 30s
+      depends_on:
+        - gtm-server-preview
+    
+    gtm-server-preview:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:latest
+      container_name: gtm-server-preview
+      restart: always
+      environment:
+        - CONTAINER_CONFIG=aWQ9R1RNLVcyQzU2TU40JmVudj0xJmF1dGg9N01CenV1M0l4RmM5OEpQVDV5LWtqdw==
+        - RUN_AS_PREVIEW_SERVER=true
+        - LOG_LEVEL=1
+      expose:
+        - 8080
+      ports:
+        - "8081:8080"  # Temporary for preview mode setup
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 30s
+    
+    gtm-server-zoppy:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:latest
+      container_name: gtm-server-zoppy
+      restart: always
+      environment:
+        - CONTAINER_CONFIG=aWQ9R1RNLVBaVlpGN0xXJmVudj0xJmF1dGg9TXptdlN5bXQ5aDBaUFpfTnpzX2c2dw==
+        - RUN_AS_PREVIEW_SERVER=false
+        - PREVIEW_SERVER_URL=https://gtm-preview.blackfisk.io
+        - LOG_LEVEL=1
+        - 8080
+      ports:
+        - "8082:8080"  # Zoppy main server
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 30s
+      depends_on:
+        - gtm-server-zoppy-preview
+    
+    gtm-server-zoppy-preview:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:latest
+      container_name: gtm-server-zoppy-preview
+      restart: always
+      environment:
+        - CONTAINER_CONFIG=aWQ9R1RNLVBaVlpGN0xXJmVudj0xJmF1dGg9TXptdlN5bXQ5aDBaUFpfTnpzX2c2dw== 
+        - RUN_AS_PREVIEW_SERVER=true
+        - LOG_LEVEL=1
+      expose:
+        - 8080
+      ports:
+        - "8083:8080"  # Zoppy preview server
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 30s
+      
+    n8n:
+      image: docker.n8n.io/n8nio/n8n:1.87.2
+      container_name: n8n
+      restart: always
+      expose:
+        - 5678
+      environment:
+        - NODE_ENV=production
+        - N8N_PUBLIC_URL=https://n8n.orosdata.com
+        - WEBHOOK_URL=https://n8n.orosdata.com
+        - GENERIC_TIMEZONE=America/Sao_Paulo
+        - N8N_METRICS=true
+        - N8N_LOG_LEVEL=debug
+        - N8N_PROXY_HOPS=1
+        - EXECUTIONS_DATA_PRUNE=true
+        - N8N_RUNNERS_ENABLED=true
+        - N8N_EDITOR_BASE_URL=https://n8n.orosdata.com
+        - EXECUTIONS_DATA_PRUNE_MAX_COUNT=50000
+        - EXECUTIONS_DATA_MAX_AGE=168
+      volumes:
+        - n8n_data:/home/node/.n8n
+        - ./n8n-files:/files
+      deploy:
+        resources:
+          limits:
+            cpus: '1.0'
+            memory: 2G
+          reservations:
+            cpus: '0.5'
+            memory: 1G
+      healthcheck:
+        test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 40s
+      
+    # Node exporter to collect system metrics
+    node-exporter:
+      image: prom/node-exporter:latest
+      container_name: node-exporter
+      restart: unless-stopped
+      volumes:
+        - /proc:/host/proc:ro
+        - /sys:/host/sys:ro
+        - /:/rootfs:ro
+      command:
+        - '--path.procfs=/host/proc'
+        - '--path.rootfs=/rootfs'
+        - '--path.sysfs=/host/sys'
+        - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      expose:
+        - 9100
+        
+    # Docker metrics exporter
+    cadvisor:
+      image: gcr.io/cadvisor/cadvisor:v0.47.0
+      container_name: cadvisor
+      restart: unless-stopped
+      volumes:
+        - /:/rootfs:ro
+        - /var/run:/var/run:ro
+        - /sys:/sys:ro
+        - /var/lib/docker/:/var/lib/docker:ro
+        - /dev/disk/:/dev/disk:ro
+      privileged: true
+      devices:
+        - /dev/kmsg
+      expose:
+        - 8080
+      ports:
+        - "8085:8080"  # Different port to avoid conflict with GTM
+        
+    # Prometheus for metrics collection
+    prometheus:
+      image: prom/prometheus:latest
+      container_name: prometheus
+      restart: unless-stopped
+      volumes:
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+        - prometheus_data:/prometheus
+      command:
+        - '--config.file=/etc/prometheus/prometheus.yml'
+        - '--storage.tsdb.path=/prometheus'
+        - '--web.console.libraries=/etc/prometheus/console_libraries'
+        - '--web.console.templates=/etc/prometheus/consoles'
+        - '--web.enable-lifecycle'
+      expose:
+        - 9090
+        
+    # Grafana for visualization
+    grafana:
+      image: grafana/grafana:latest
+      container_name: grafana
+      restart: unless-stopped
+      volumes:
+        - grafana_data:/var/lib/grafana
+        - ./grafana/provisioning:/etc/grafana/provisioning
+      environment:
+        - GF_SECURITY_ADMIN_USER=admin
+        - GF_SECURITY_ADMIN_PASSWORD=!Trixman25*
+        - GF_USERS_ALLOW_SIGN_UP=false
+        - GF_SERVER_ROOT_URL=https://server.orosdata.com/grafana
+        - GF_SERVER_SERVE_FROM_SUB_PATH=true
+        - GF_SERVER_DOMAIN=server.orosdata.com
+        - GF_SERVER_ENFORCE_DOMAIN=false
+      expose:
+        - 3000
 
-volumes:
-  prometheus_data:
-  grafana_data:
+  volumes:
+    prometheus_data:
+    grafana_data:
+    n8n_data:
