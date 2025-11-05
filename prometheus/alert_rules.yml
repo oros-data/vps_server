@@ -1,0 +1,169 @@
+groups:
+- name: gtm_alerts
+  rules:
+  # GTM Server Down
+  - alert: GTMServerDown
+    expr: up{job="gtm-servers"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: gtm
+    annotations:
+      summary: "GTM Server is down"
+      description: "GTM server {{ $labels.instance }} has been down for more than 1 minute"
+
+  # High GTM Error Rate
+  - alert: GTMHighErrorRate
+    expr: rate(gtm_requests_total{status=~"5.."}[5m]) / rate(gtm_requests_total[5m]) > 0.05
+    for: 2m
+    labels:
+      severity: warning
+      service: gtm
+    annotations:
+      summary: "High error rate in GTM server"
+      description: "GTM server has error rate above 5% for domain {{ $labels.domain }} (current: {{ $value | humanizePercentage }})"
+
+  # GTM Slow Response Time
+  - alert: GTMSlowResponse
+    expr: histogram_quantile(0.95, rate(gtm_request_duration_seconds_bucket[5m])) > 2
+    for: 5m
+    labels:
+      severity: warning
+      service: gtm
+    annotations:
+      summary: "GTM server slow response"
+      description: "95th percentile response time is {{ $value }}s for domain {{ $labels.domain }}"
+
+  # Low GTM Event Processing Rate
+  - alert: GTMLowEventRate
+    expr: rate(gtm_events_processed_total[5m]) < 1
+    for: 10m
+    labels:
+      severity: warning
+      service: gtm
+    annotations:
+      summary: "Low GTM event processing rate"
+      description: "GTM event processing rate is below 1 event/sec for {{ $labels.domain }}"
+
+  # GTM Memory Usage High
+  - alert: GTMHighMemoryUsage
+    expr: |
+      (
+        container_memory_usage_bytes{name=~"gtm-server.*"} / 
+        container_spec_memory_limit_bytes{name=~"gtm-server.*"}
+      ) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: gtm
+    annotations:
+      summary: "High memory usage in GTM container"
+      description: "Memory usage is {{ $value | humanizePercentage }} for container {{ $labels.name }}"
+
+- name: infrastructure_alerts
+  rules:
+  # High CPU Usage
+  - alert: HighCPUUsage
+    expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+    for: 5m
+    labels:
+      severity: warning
+      service: infrastructure
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage is {{ $value | humanizePercentage }} (threshold: 85%)"
+
+  # Low Disk Space
+  - alert: LowDiskSpace
+    expr: |
+      (
+        node_filesystem_avail_bytes{mountpoint="/"} / 
+        node_filesystem_size_bytes{mountpoint="/"}
+      ) * 100 < 15
+    for: 5m
+    labels:
+      severity: critical
+      service: infrastructure
+    annotations:
+      summary: "Low disk space"
+      description: "Disk space is {{ $value | humanizePercentage }} available (threshold: 15%)"
+
+  # High Memory Usage
+  - alert: HighMemoryUsage
+    expr: |
+      (
+        (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / 
+        node_memory_MemTotal_bytes
+      ) * 100 > 85
+    for: 5m
+    labels:
+      severity: warning
+      service: infrastructure
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 85%)"
+
+  # Container Down
+  - alert: ContainerDown
+    expr: up{job="cadvisor"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: infrastructure
+    annotations:
+      summary: "Container monitoring is down"
+      description: "cAdvisor container monitoring has been down for more than 1 minute"
+
+- name: nginx_alerts
+  rules:
+  # Nginx High Error Rate
+  - alert: NginxHighErrorRate
+    expr: |
+      sum(rate(nginx_http_requests_total{status=~"5.."}[5m])) /
+      sum(rate(nginx_http_requests_total[5m])) > 0.05
+    for: 2m
+    labels:
+      severity: warning
+      service: nginx
+    annotations:
+      summary: "High error rate in Nginx"
+      description: "Nginx error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+  # Nginx High Response Time
+  - alert: NginxHighResponseTime
+    expr: nginx_http_request_duration_seconds{quantile="0.95"} > 1
+    for: 5m
+    labels:
+      severity: warning
+      service: nginx
+    annotations:
+      summary: "High response time in Nginx"
+      description: "95th percentile response time is {{ $value }}s (threshold: 1s)"
+
+- name: multi_tenant_alerts
+  rules:
+  # Tenant Resource Imbalance
+  - alert: TenantResourceImbalance
+    expr: |
+      (
+        max(rate(gtm_requests_total[5m])) by (domain) - 
+        min(rate(gtm_requests_total[5m])) by (domain)
+      ) / max(rate(gtm_requests_total[5m])) by (domain) > 0.8
+    for: 10m
+    labels:
+      severity: info
+      service: multi-tenant
+    annotations:
+      summary: "Tenant resource usage imbalance"
+      description: "Large difference in request rates between tenants ({{ $value | humanizePercentage }} difference)"
+
+  # Domain Specific High Load
+  - alert: DomainHighLoad
+    expr: rate(gtm_requests_total[5m]) > 100
+    for: 5m
+    labels:
+      severity: warning
+      service: multi-tenant
+    annotations:
+      summary: "High load on specific domain"
+      description: "Domain {{ $labels.domain }} is receiving {{ $value }} requests/sec"

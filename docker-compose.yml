@@ -3,12 +3,15 @@
   services:
     nginx:
       image: nginx:stable
+      container_name: nginx
       ports:
         - "80:80"
         - "443:443"
       volumes:
         - ./nginx/conf.d:/etc/nginx/conf.d
         - ./nginx/ssl:/etc/nginx/ssl
+        - ./certbot/www:/var/www/certbot
+        - /etc/letsencrypt:/etc/letsencrypt:ro
         - ./nginx/cache:/var/cache/nginx
         - ./nginx/nginx.conf:/etc/nginx/nginx.conf
         - ./nginx/auth:/etc/nginx/auth
@@ -17,9 +20,10 @@
       command: ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
       depends_on:
         - gtm-server
+        - gtm-server-dreamz
+        - gtm-server-preview-dreamz
         - grafana
         - prometheus
-        - n8n
       
     # NGINX metrics exporter
     nginx-exporter:
@@ -32,32 +36,24 @@
         - nginx
       expose:
         - 9113
-      
-    gtm-server:
-      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:latest
-      container_name: gtm-server
+    
+    gtm-server-dreamz:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+      container_name: gtm-server-dreamz
       restart: always
       environment:
         - CONTAINER_CONFIG=aWQ9R1RNLVcyQzU2TU40JmVudj0xJmF1dGg9N01CenV1M0l4RmM5OEpQVDV5LWtqdw==
         - RUN_AS_PREVIEW_SERVER=false
-        - PREVIEW_SERVER_URL=https://gtm-preview.yannrodrigues.com
+        - PREVIEW_SERVER_URL=https://gtm-preview.dreamz.com.br
         - LOG_LEVEL=1
       expose:
         - 8080
-      ports:
-        - "8080:8080"  # Temporary for preview mode setup
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 30s
       depends_on:
-        - gtm-server-preview
+        - gtm-server-preview-dreamz
     
-    gtm-server-preview:
-      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:latest
-      container_name: gtm-server-preview
+    gtm-server-preview-dreamz:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+      container_name: gtm-server-preview-dreamz
       restart: always
       environment:
         - CONTAINER_CONFIG=aWQ9R1RNLVcyQzU2TU40JmVudj0xJmF1dGg9N01CenV1M0l4RmM5OEpQVDV5LWtqdw==
@@ -65,92 +61,107 @@
         - LOG_LEVEL=1
       expose:
         - 8080
-      ports:
-        - "8081:8080"  # Temporary for preview mode setup
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 30s
     
     gtm-server-zoppy:
-      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:latest
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
       container_name: gtm-server-zoppy
       restart: always
       environment:
-        - CONTAINER_CONFIG=aWQ9R1RNLVBaVlpGN0xXJmVudj0xJmF1dGg9TXptdlN5bXQ5aDBaUFpfTnpzX2c2dw==
+        - CONTAINER_CONFIG=aWQ9R1RNLU43S1Q2UEhTJmVudj0xJmF1dGg9U3pXamNGZmJQRks4R1J4Q3dqNGxjZw==
         - RUN_AS_PREVIEW_SERVER=false
-        - PREVIEW_SERVER_URL=https://gtm-preview.blackfisk.io
+        - PREVIEW_SERVER_URL=https://gtmop.zoppy.com.br
         - LOG_LEVEL=1
+      expose:
         - 8080
-      ports:
-        - "8082:8080"  # Zoppy main server
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 30s
       depends_on:
-        - gtm-server-zoppy-preview
+        - gtm-server-preview-zoppy
     
-    gtm-server-zoppy-preview:
-      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:latest
-      container_name: gtm-server-zoppy-preview
+    gtm-server-preview-zoppy:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+      container_name: gtm-server-preview-zoppy
       restart: always
       environment:
-        - CONTAINER_CONFIG=aWQ9R1RNLVBaVlpGN0xXJmVudj0xJmF1dGg9TXptdlN5bXQ5aDBaUFpfTnpzX2c2dw== 
+        - CONTAINER_CONFIG=aWQ9R1RNLU43S1Q2UEhTJmVudj0xJmF1dGg9U3pXamNGZmJQRks4R1J4Q3dqNGxjZw==
         - RUN_AS_PREVIEW_SERVER=true
         - LOG_LEVEL=1
       expose:
         - 8080
-      ports:
-        - "8083:8080"  # Zoppy preview server
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 30s
-      
-    n8n:
-      image: docker.n8n.io/n8nio/n8n:1.87.2
-      container_name: n8n
+
+    gtm-server:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+      container_name: gtm-server
       restart: always
-      expose:
-        - 5678
       environment:
-        - NODE_ENV=production
-        - N8N_PUBLIC_URL=https://n8n.orosdata.com
-        - WEBHOOK_URL=https://n8n.orosdata.com
-        - GENERIC_TIMEZONE=America/Sao_Paulo
-        - N8N_METRICS=true
-        - N8N_LOG_LEVEL=debug
-        - N8N_PROXY_HOPS=1
-        - EXECUTIONS_DATA_PRUNE=true
-        - N8N_RUNNERS_ENABLED=true
-        - N8N_EDITOR_BASE_URL=https://n8n.orosdata.com
-        - EXECUTIONS_DATA_PRUNE_MAX_COUNT=50000
-        - EXECUTIONS_DATA_MAX_AGE=168
-      volumes:
-        - n8n_data:/home/node/.n8n
-        - ./n8n-files:/files
-      deploy:
-        resources:
-          limits:
-            cpus: '1.0'
-            memory: 2G
-          reservations:
-            cpus: '0.5'
-            memory: 1G
-      healthcheck:
-        test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 40s
-      
+        - CONTAINER_CONFIG=aWQ9R1RNLU5KTjhINk04JmVudj0xJmF1dGg9T19BOTNrWEZfQXF3ZDNyZ2RLTVNJdw== 
+        - RUN_AS_PREVIEW_SERVER=false
+        - PREVIEW_SERVER_URL=https://gtmp.orosdata.com
+        - LOG_LEVEL=1
+      expose:
+        - 8080
+      depends_on:
+        - gtm-server-preview
+
+    gtm-server-preview:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+      container_name: gtm-server-preview
+      restart: always
+      environment:
+        - CONTAINER_CONFIG=aWQ9R1RNLU5KTjhINk04JmVudj0xJmF1dGg9T19BOTNrWEZfQXF3ZDNyZ2RLTVNJdw==
+        - RUN_AS_PREVIEW_SERVER=true
+        - LOG_LEVEL=1
+      expose:
+        - 8080
+
+    gtm-server-vidi:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+      container_name: gtm-server-vidi
+      restart: always
+      environment:
+        - CONTAINER_CONFIG=aWQ9R1RNLU5MSEI3TEw0JmVudj0xJmF1dGg9UXZqY3d2SzJ2eHBnM3FFOFZrcDNNUQ==
+        - RUN_AS_PREVIEW_SERVER=false
+        - PREVIEW_SERVER_URL=https://gtmop.segueadii.com.br
+        - LOG_LEVEL=1
+      expose:
+        - 8080
+      depends_on:
+        - gtm-server-preview-vidi
+
+    gtm-server-preview-vidi:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+      container_name: gtm-server-preview-vidi
+      restart: always
+      environment:
+        - CONTAINER_CONFIG=aWQ9R1RNLU5MSEI3TEw0JmVudj0xJmF1dGg9UXZqY3d2SzJ2eHBnM3FFOFZrcDNNUQ==
+        - RUN_AS_PREVIEW_SERVER=true
+        - LOG_LEVEL=1
+      expose:
+        - 8080
+
+    gtm-server-treinarservicos:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+      container_name: gtm-server-treinarservicos
+      restart: always
+      environment:
+        - CONTAINER_CONFIG=aWQ9R1RNLTVUOTdHVEhYJmVudj0xJmF1dGg9anVWM1pfOVJ3TVlxVTJBeG9LRUtHUQ==
+        - RUN_AS_PREVIEW_SERVER=false
+        - PREVIEW_SERVER_URL=https://gtmop.treinarservicos.com.br
+        - LOG_LEVEL=1
+      expose:
+        - 8080
+      depends_on:
+        - gtm-server-preview-treinarservicos
+
+    gtm-server-preview-treinarservicos:
+      image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+      container_name: gtm-server-preview-treinarservicos
+      restart: always
+      environment:
+        - CONTAINER_CONFIG=aWQ9R1RNLTVUOTdHVEhYJmVudj0xJmF1dGg9anVWM1pfOVJ3TVlxVTJBeG9LRUtHUQ==
+        - RUN_AS_PREVIEW_SERVER=true
+        - LOG_LEVEL=1
+      expose:
+        - 8080
+
     # Node exporter to collect system metrics
     node-exporter:
       image: prom/node-exporter:latest
@@ -184,8 +195,15 @@
         - /dev/kmsg
       expose:
         - 8080
-      ports:
-        - "8085:8080"  # Different port to avoid conflict with GTM
+
+    uptime-kuma:
+      image: louislam/uptime-kuma:latest
+      container_name: uptime-kuma
+      volumes:
+        - uptime-kuma:/app/data
+      restart: unless-stopped
+      expose:
+        - 3001
         
     # Prometheus for metrics collection
     prometheus:
@@ -226,4 +244,4 @@
   volumes:
     prometheus_data:
     grafana_data:
-    n8n_data:
+    uptime-kuma:

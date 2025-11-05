@@ -2,47 +2,53 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
 scrape_configs:
-  - job_name: 'node'
+  # System metrics
+  - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
-  
-  - job_name: 'nginx'
-    static_configs:
-      - targets: ['nginx-exporter:9113']
-      
-  - job_name: 'n8n'
-    static_configs:
-      - targets: ['n8n:5678']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
-    
-  - job_name: 'gtm-server'
-    static_configs:
-      - targets: ['gtm-server:8080']
-    metrics_path: '/healthz'
-    scrape_interval: 15s
-    
-  - job_name: 'gtm-server-preview'
-    static_configs:
-      - targets: ['gtm-server-preview:8080']
-    metrics_path: '/healthz'
-    scrape_interval: 15s
-    
-  - job_name: 'gtm-server-zoppy'
-    static_configs:
-      - targets: ['gtm-server-zoppy:8080']
-    metrics_path: '/healthz'
-    scrape_interval: 15s
-    
-  - job_name: 'gtm-server-zoppy-preview'
-    static_configs:
-      - targets: ['gtm-server-zoppy-preview:8080']
-    metrics_path: '/healthz'
-    scrape_interval: 15s
-    
+
+  # Container metrics
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
+
+  # Nginx metrics
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+
+  # GTM custom metrics
+  - job_name: 'gtm-metrics'
+    static_configs:
+      - targets: ['gtm-metrics-exporter:9100']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # GTM Server health checks
+  - job_name: 'gtm-servers'
+    static_configs:
+      - targets: 
+        - 'gtm-server-dreamz:8080'
+        - 'gtm-server-preview-dreamz:8080'
+    metrics_path: /healthz
+    scrape_interval: 10s
+
+  # AlertManager
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
